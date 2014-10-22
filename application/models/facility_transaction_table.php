@@ -50,6 +50,7 @@ class facility_transaction_table extends Doctrine_Record {
 	return $commodities;		}
 
     public static function get_commodities_for_ordering($facility_code,$for_a_facility=null){
+    	//echo "Its ait till here";exit;
     	if(isset($for_a_facility)): // hack to ensure that when you are ordering for a facility that is not using hcmp they have all the items
     $items=Commodities::get_all_from_supllier(1);
 	$temp=array();

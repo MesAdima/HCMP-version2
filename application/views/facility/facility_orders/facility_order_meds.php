@@ -10,7 +10,7 @@
 		<div class="col-md-4" id=""><p class="bg-info"><b>AMC - Average Monthly Consumption</b></p>
 			
 		</div>
-		<div class="col-md-4" id="" ><p class="bg" float = "right"><button type="button" class="remove btn btn-success btn-large"><span class="glyphicon glyphicon-save"></span>Upload order via Excel</button></p>
+		<div class="col-md-4 order-for-excel" id="" ><p class="bg" float = "right"><button type="button" class="remove btn btn-success btn-large"><span class="glyphicon glyphicon-save"></span>Upload order via Excel</button></p>
 			
 		</div>
 	</div>
@@ -261,6 +261,17 @@ $(document).ready(function() {
 				locator.closest("tr").find(".commodity").html(dropdown);
 			});				
 		});
+		
+		$(".order-for-excel").on('click', function(e) {
+                  e.preventDefault(); 
+    var body_content='<?php  $att=array("name"=>'myform','id'=>'myform');
+    echo form_open_multipart('orders/facility_order_meds',$att)?>'+
+'<input type="file" name="file" id="file" required="required" class="form-control"><br>'+
+'<button class="upload">Upload</button>'+
+'</form>';
+   //hcmp custom message dialog
+    dialog_box(body_content,'');        
+    });		
 });	
 </script>
 <script src="<?php echo base_url().'assets/bower_components/intro.js/intro.js'?>" type="text/javascript"></script>
