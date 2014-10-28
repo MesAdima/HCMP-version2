@@ -125,6 +125,14 @@ return $inserttransaction;
               
   return $getdata;
 	}
+	
+	public static function get_meds_id($meds){
+		
+	$getdata = Doctrine_Manager::getInstance()->getCurrentConnection()
+    ->fetchAll("SELECT id FROM meds_commodities WHERE commodity_code='$meds' ;"); 
+              
+  return $getdata;
+	}
 
 }
 ?>

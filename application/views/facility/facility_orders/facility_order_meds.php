@@ -10,7 +10,7 @@
 		<div class="col-md-4" id=""><p class="bg-info"><b>AMC - Average Monthly Consumption</b></p>
 			
 		</div>
-		<div class="col-md-4 order-for-excel" id="" ><p class="bg" float = "right"><button type="button" class="remove btn btn-success btn-large"><span class="glyphicon glyphicon-save"></span>Upload order via Excel</button></p>
+		<div class="col-md-4" id="" ><p class="bg" float = "right"><button type="button" class="remove btn btn-success btn-large"><span class="glyphicon glyphicon-save"></span>Upload order via Excel</button></p>
 			
 		</div>
 	</div>
@@ -29,7 +29,7 @@
 	<hr />
 	<div class="container">
 <div class="table-responsive" style="min-height:300px; overflow-y: auto;">
- <?php $att=array("name"=>'myform','id'=>'myform'); echo form_open('issues/internal_issue',$att); ?>
+ <?php $att=array("name"=>'myform','id'=>'myform'); echo form_open('orders/facility_meds_order',$att); ?>
 <table  class="table table-hover table-bordered table-update" id="facility_issues_table" >
 <thead style="background-color: white">
 	<th>Commodity Type</th>
@@ -66,7 +66,7 @@
 <tbody>
 	<tr>
 		<td>
-			<select type="hidden" name="commodity_type" class="form-control input-small commodity_type" >
+			<select type="hidden" name="commodity_type[]" class="form-control input-small commodity_type" >
 			<option value="0" >Select Type</option>
 			<?php 
 			
@@ -81,12 +81,12 @@
 			</select>
 		</td>
 		<td>
-			<select name="mfl[0]" class="form-control input-small sub_category" style="width:110px !important;">
+			<select name="mfl[]" class="form-control input-small sub_category" style="width:110px !important;">
            		<option value="0">Select Category</option>
 		   	</select>
 		</td>
 		<td>
-			<select name="mfl[0]" class="form-control input-small commodity" style="width:110px !important;">
+			<select name="commodity_code[]" class="form-control input-small commodity" style="width:110px !important;">
            		<option value="0">Select Commodity</option>
 		   	</select>
 			
@@ -151,9 +151,9 @@ endforeach;
 		<td><input  type="text" class="form-control input-small order_note" readonly="readonly" /></td>
 		
 		<td><input  type="text" class="form-control input-small unit_cost" readonly="readonly"  /></td>										
-		<td><input class="form-control input-small quantity" type="text" name="quantity[]"/></td>
+		<td><input class="form-control input-small quantity" id="quantity" type="text" name="quantity[]"/></td>
 		<td><input type="text" class="form-control input-small cost" name="cost[]" readonly="yes"   /></td>	
-		<td style="width:50px !important;" id="step8" ><button type="button" class="remove btn btn-success btn-xs"><span class="glyphicon glyphicon-plus-sign"></span>Add Row</button>
+		<td style="width:50px !important;" id="step8" ><button type="button" class="add btn btn-success btn-xs"><span class="glyphicon glyphicon-plus-sign"></span>Add Row</button>
 		</td><td><button type="button" class="remove btn btn-danger btn-xs"><span class="glyphicon glyphicon-minus"></span>Delete Row</button></td>
 			
 														
@@ -161,7 +161,15 @@ endforeach;
 	</tr>
 </tbody>
 </table>
+
+<?php echo form_close(); ?>
 </div>
+</div>
+<hr />
+<div class="container-fluid">
+<div style="float: right;">
+<button type="button" class="add btn btn-primary"><span class="glyphicon glyphicon-plus"></span>Add Item</button>
+<button type="button" class="btn btn-success test"><span class="glyphicon glyphicon-open"></span>Save</button></div>
 </div>
 <script>
 $(document).ready(function() {
@@ -176,19 +184,51 @@ $(document).ready(function() {
 	//step one load all the facility data here
 	var facility_stock_data = <?php echo $facility_order;?>;
 	
+	$(document).on('keyup','.quantity', function (){
+		//alert()
+	var selector_object=$(this);
+	var user_input=$(this).val();
+	var total_units=$(this).closest("tr").find(".total_commodity_units").val();
+	var unit_cost=$(this).closest("tr").find(".unit_cost").val();
+	// check the user input value here
+	var alert_message='';
+			if (selector_object.val() <0) { alert_message+="<li>Order value must be above 0</li>";}
+		    if (selector_object.val().indexOf('.') > -1) {alert_message+="<li>Decimals are not allowed.</li>";}		
+			if (isNaN(selector_object.val())){alert_message+="<li>Enter only numbers</li>";}				
+			if(isNaN(alert_message)){
+	//reset the text field and the message dialog box 
+    selector_object.val(""); var notification='<ol>'+alert_message+'</ol>&nbsp;&nbsp;&nbsp;&nbsp;';
+    //hcmp custom message dialog
+    dialog_box(notification,'<button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>');
+    //This event is fired immediately when the hide instance method has been called.
+    $('#communication_dialog').on('hide.bs.modal', function (e) { selector_object.focus();	})
+    calculate_totals();
+    $(this).closest("tr").find(".actual_quantity").val("");
+	$(this).closest("tr").find(".cost").val("");
+    return;   } 
+    if(user_input==''){
+    	user_input=0;
+    }
+	
+	// set the order total here
+	calculate_totals();	
+	});// process all the order into a summary table for the user to confirm before placing the order bed_capacity workload
+
 	///when changing the commodity select box
 	$(".commodity").on('change',function(){
-		var row_id=$(this).closest("tr").index();	
   		var locator=$('option:selected', this);
+		var row_id=$(this).closest("tr").index();	
 		var data =$('option:selected', this).attr('special_data'); 
+		var stock_id =$('option:selected', this).val(); 
+		var unit_price =$('option:selected', this).attr('data-unit-price'); 
        	var data_array=data.split("^");	
-       //	console.log(data_array);
-       	
-       	locator.closest("tr").find(".unit_size").val(data_array[1]);
-     	locator.closest("tr").find(".supplier_name").val(data_array[2]);
-     	locator.closest("tr").find(".commodity_id").val(data_array[0]);
+       	// alert(data_array[2]);return;
+       	console.log(data);
+       	locator.closest("tr").find(".unit_size").val(data_array[0]);
+     	locator.closest("tr").find(".order_note").val(data_array[1]);
+     	locator.closest("tr").find(".unit_cost").val(unit_price);
      	locator.closest("tr").find(".available_stock").val("");
-     	locator.closest("tr").find(".total_units").val(data_array[3]);
+     	locator.closest("tr").find(".commodity_code").val(stock_id);
      	locator.closest("tr").find(".expiry_date").val("");
      	locator.closest("tr").find(".quantity_issued").val("0");
      	locator.closest("tr").find(".clone_datepicker_normal_limit_today").val("");	
@@ -225,6 +265,25 @@ $(document).ready(function() {
 				locator.closest("tr").find(".sub_category").html(dropdown);
 			});				
 		});
+		//adding a row
+		$(".add").click(function() {
+        var selector_object = $('#facility_issues_table tr:last');
+        // alert("works");return;
+        var form_data = check_if_the_form_has_been_filled_correctly(selector_object);
+        if(isNaN(form_data[0])){
+        var notification='<ol>'+form_data[0]+'</ol>&nbsp;&nbsp;&nbsp;&nbsp;';
+           //hcmp custom message dialog
+        dialog_box(notification,'<button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>');
+        return;   }// set the balance here
+			//set the quantities to readonly  $("#dropdown").prop("disabled", true);
+			selector_object.closest("tr").find(".quantity_issued").attr('readonly','readonly');
+			selector_object.closest("tr").find(".batch_no").attr("disabled", true);
+			selector_object.closest("tr").find(".commodity_unit_of_issue").attr("disabled", true);
+			selector_object.closest("tr").find(".desc").attr("disabled", true);				
+			//reset the values of current element 
+		  clone_the_last_row_of_the_table();
+		});	/////batch no change event
+
 		//When a sub_category is selected the commodities listed change
 		$('.sub_category').on("change", function() {
 		var locator = $('option:selected', this);
@@ -238,20 +297,22 @@ $(document).ready(function() {
 		  data: "sub_category="+id,
 		  success: function(msg)
 		  {
-		  	//alert(msg);return
+		  	// alert(msg);return;
 		  	var values = msg.split("_");
 		  	var x = values[0];
-		  	alert(x);return
   			var txtbox;
 	  		for (var i=0; i < values.length-1; i++) 
 	  		{
-	  			alert(values[i]);return
-	  			var id_value = values[i].split("^");	
-	  			console.log(id_value);			  					  			
-	  			dropdown+="<option value="+id_value[1]+">";
-				dropdown+=id_value[2];						
-				dropdown+="</option>";	
-					  			
+	  			// dropdown ="";
+	  			var id_value = values[i].split("^");		  					  			
+	  			// alert(id_value[3]);return
+	  			// var special_data_values = id_value[1] + "^" +id_value[2]+"^"+id_value[3];
+	  			// alert(special_data_values);return;
+	  			dropdown+="<option value="+id_value[0]+" special_data="+id_value[1]+"^"+id_value[2]+"^ data-unit-price = "+id_value[3]+">";
+				dropdown+=id_value[4];						
+				dropdown+="</option>";
+
+				// alert(dropdown);return;
 	  		}	
 		  },
 			  error: function(XMLHttpRequest, textStatus, errorThrown) {
@@ -260,18 +321,183 @@ $(document).ready(function() {
 			}).done(function( msg ) {			
 				locator.closest("tr").find(".commodity").html(dropdown);
 			});				
-		});
+		});//end of ajax
+	
+		$('.test').on('click','', function (){
+	var table_data='<div class="row" style="padding-left:2em"><div class="col-md-6"><h4>Order Summary</h4></div></div>'+
+    '<table class="table table-hover table-bordered table-update">'+
+					"<thead><tr>"+
+					"<th>Description</th>"+
+					"<th>Commodity Code</th>"+
+					"<th>Order Quantity</th>"+
+					"<th>Unit Cost Ksh</th>"+
+					"<th>Total Ksh</th></tr></thead><tbody>";	 	    			
+        $("input[name^=cost]").each(function(i) { 
+         	//$(document).each('','input[name^=cost]', function (i){
+         var C_name=$(this).closest("tr").find(".commodity option:selected").text()
+         //alert(C_name);
+         //return;
+        table_data +="<tr>" +
+							"<td>" +C_name+ "</td>" +
+							"<td>" +$(this).closest("tr").find(".commodity_code").val()+ "</td>" +
+							"<td>" +$(this).closest("tr").find(".quantity").val()+ "</td>" +	
+							"<td>" +number_format($(this).closest("tr").find(".unit_cost").val(), 2, '.', ',')+ "</td>" +	
+							"<td>" +number_format($(this).closest("tr").find(".cost").val(), 2, '.', ',')+ "</td>" +													
+						"</tr>" 
+                    });
+         table_data +="</tbody></table>";
+    //hcmp custom message dialog
+    dialog_box(table_data,'<button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>'
+    +'<button type="button" class="btn btn-primary" id="save_dem_order" data-dismiss="modal">Save</button>');
+	});
+
+	$('#main-content').on('click','#save_dem_order',function() {
+     var order_total=$('#total_order_value').val();
+     var workload=$('#workload').val();
+     var bed_capacity=$('#bed_capacity').val();
+     var alert_message='';
+     if (order_total==0) {alert_message+="<li>Sorry, you can't submit an Order Value of Zero</li>";}
+     if (workload=='') {alert_message+="<li>Indicate Total OPD Visits & Revisits</li>";}
+     if (bed_capacity=='') {alert_message+="<li>Indicate In-patient Bed Days</li>";}
+     if(isNaN(alert_message)){
+     //This event is fired immediately when the hide instance method has been called.
+    $('#quantity').delay(500).queue(function (nxt){
+    // Load up a new modal...
+     dialog_box('Fix these items before saving your Order <ol>'+alert_message+'</ol>&nbsp;&nbsp;&nbsp;&nbsp;',
+     '<button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>');
+    	nxt();
+    });
+     }else{//seth
+    $('#quantity').delay(500).queue(function (nxt){
+				// alert("I work");return;
+    // Load up a new modal...
+    var img='<img src="<?php echo base_url('assets/img/wait.gif') ?>"/>';
+     dialog_box(img+'<h5 style="display: inline-block; font-weight:500;font-size: 18px;padding-left: 2%;"> Please wait as the order is being processed</h5>',
+     '');
+    	nxt();
+    	$("#myform").submit();
+    });
+     	
+     }
+     });
+
+		$('.remove').on('click',function(){
+			var data_ =$('option:selected', $(this).closest("tr").find('.commodity')).val(); 
+			// alert(data_);return;
+	       	var data_array=data_.split("^");
+			var row_id=$(this).closest("tr").index();
+			var count_rows=0;
+			var bal=parseInt(calculate_actual_stock(data_array[3],$(this).closest("tr").find(".commodity_unit_of_issue").val(),
+    parseInt($(this).closest("tr").find(".quantity_issued").val()),'return',''))			
+            var commodity_stock_id=parseInt($(this).closest("tr").find(".facility_stock_id").val());   
+            var total=0;
+            var commodity_id=$(this).closest("tr").find(".commodity_id").val();  
+
+			$("input[name^=commodity_id]").each(function(index, value) {				
+			var new_id=$(this).closest("tr").index();
+			var total_current_issues=$(this).closest("tr").find(".quantity_issued").val();
+			var current_facility_stock_id=$(this).closest("tr").find(".facility_stock_id").val();
+                  if(new_id>row_id && parseInt($(this).val())==commodity_id){ // check for total issues for this item              	 
+                  var value=parseInt($(this).closest("tr").find(".commodity_balance").val())+bal;  ///available_stock
+                   $(this).closest("tr").find(".commodity_balance").val(value);
+                   $(this).closest("tr").find(".balance").val(value);                  
+                  }                
+                  if(new_id>row_id && current_facility_stock_id==commodity_stock_id){// check for total issues for batch this item
+                   var value=parseInt($("input[name='available_stock["+new_id+"]']").val())+bal;  ///available_stock
+                   $("input[name='available_stock["+new_id+"]']").val(value);
+                  }
+                 count_rows++;
+		        });
+	       //finally remove the row 
+	       if(count_rows==1){
+	       	 clone_the_last_row_of_the_table();
+	       	 $(this).parent().parent().remove(); 
+	       }else{
+	       	$(this).parent().parent().remove(); 
+	       }	         
+      });
+
+		function clone_the_last_row_of_the_table(){
+            var last_row = $('#facility_issues_table tr:last');
+            var cloned_object = last_row.clone(true);
+            var table_row = cloned_object.attr("row_id");
+            var next_table_row = parseInt(table_row) + 1;           
+		    cloned_object.attr("row_id", next_table_row);
+			cloned_object.find(".service_point").attr('name','service_point['+next_table_row+']');
+			cloned_object.find(".facility").attr('name','mfl['+next_table_row+']'); 
+			cloned_object.find(".commodity_id").attr('name','commodity_id['+next_table_row+']'); 
+			cloned_object.find(".commodity_id").attr('id',next_table_row); 
+			cloned_object.find(".quantity_issued").attr('name','quantity_issued['+next_table_row+']'); 	
+			cloned_object.find(".clone_datepicker_normal_limit_today").attr('name','clone_datepicker_normal_limit_today['+next_table_row+']'); 
+			cloned_object.find(".available_stock").attr('name','available_stock['+next_table_row+']'); 
+			cloned_object.find(".facility_stock_id").attr('name','facility_stock_id['+next_table_row+']'); 
+			cloned_object.find(".batch_no").attr('name','batch_no['+next_table_row+']');
+			cloned_object.find(".commodity_unit_of_issue").attr('name','commodity_unit_of_issue['+next_table_row+']');
+			cloned_object.find(".expiry_date").attr('name','expiry_date['+next_table_row+']');
+			cloned_object.find(".desc").attr('name','desc['+next_table_row+']');
+			cloned_object.find(".commodity_balance").attr('name','commodity_balance['+next_table_row+']');	
+			cloned_object.find(".manufacture").attr('name','manufacture['+next_table_row+']');					
+            cloned_object.find("input").attr('value',"");     
+            cloned_object.find(".quantity_issued").attr('value',"0");   
+            cloned_object.find(".quantity_issued").removeAttr('readonly');  
+            cloned_object.find(".batch_no").removeAttr('disabled');
+            cloned_object.find(".commodity_unit_of_issue").removeAttr('disabled'); 
+            cloned_object.find(".desc").removeAttr('disabled');   
+            cloned_object.find(".commodity_balance").attr('value',"0");            
+            cloned_object.find(".batch_no").html("");  
+            // remove the error class
+            cloned_object.find("label.error").remove();           
+			cloned_object.insertAfter('#facility_issues_table tr:last').find('input').val('');;	
+			refresh_clone_datepicker_normal_limit_today();	
+        }
+
+		function check_if_the_form_has_been_filled_correctly(selector_object){
+		var alert_message='';
+		var service_point = selector_object.closest("tr").find(".service_point").val();
+		var commodity_id = selector_object.closest("tr").find(".desc").val();
+		var issue_date = selector_object.closest("tr").find(".clone_datepicker_normal_limit_today").val();
+		//var issue_quantity = selector_object.closest("tr").find(".quantity_issued").val();
+
+		var service_point=selector_object.closest("tr").find(".service_point").val();
+		var commodity_id=selector_object.closest("tr").find(".desc").val();
+		var issue_date=selector_object.closest("tr").find(".clone_datepicker_normal_limit_today").val();
+		//var issue_quantity=selector_object.closest("tr").find(".quantity_issued").val();
+
+		var facility=selector_object.closest("tr").find(".facility").val();
+		//set the message here
+		if (facility==0) {alert_message+="<li>Select a Facility First</li>";}
+		if (service_point==0) {alert_message+="<li>Select a Service Point</li>";}
+	    if (commodity_id==0) {alert_message+="<li>Select a commodity</li>";}
+	    if (issue_date==0 || issue_date=='') {alert_message+="<li>Indicate the date of the issue</li>";}	
+	   // if (issue_quantity==0) {alert_message+="<li>Indicate how much you want to issue</li>";}	    
+
+	    return[alert_message,service_point,commodity_id,issue_date];	
+
+		}//extract facility_data  from the json object 	
+
+		function calculate_totals(){
+	var order_total=0;
+	var balance=0
+	 $("input[name^=quantity]").each(function() {
+
+	 	if($(this).val()=='')
+	 	{ var total=0} 
+	 	else{ var total=$(this).val()
+	 		}//calculate the balances here
+	 	var unit_cost=$(this).closest("tr").find(".unit_cost").val();
+	 	var actual_units=parseInt($(this).closest("tr").find(".total_commodity_units").val())*total;
+	 	var total_cost=parseInt(total)*parseInt(unit_cost.replace(",", ""));    	
+        order_total=(total_cost)+parseInt(order_total); 
+	    $(this).closest("tr").find(".actual_quantity").val(actual_units);
+	    $(this).closest("tr").find(".cost").val(total_cost);   
+     });//check if order total is a NAN
+    //calculate the balances here
+     //set the balances here
+     $("#total_order_balance_value").val(balance)
+     $("#total_order_value").val(order_total);
 		
-		$(".order-for-excel").on('click', function(e) {
-                  e.preventDefault(); 
-    var body_content='<?php  $att=array("name"=>'myform','id'=>'myform');
-    echo form_open_multipart('orders/facility_order_meds',$att)?>'+
-'<input type="file" name="file" id="file" required="required" class="form-control"><br>'+
-'<button class="upload">Upload</button>'+
-'</form>';
-   //hcmp custom message dialog
-    dialog_box(body_content,'');        
-    });		
+	}
+
 });	
 </script>
 <script src="<?php echo base_url().'assets/bower_components/intro.js/intro.js'?>" type="text/javascript"></script>
