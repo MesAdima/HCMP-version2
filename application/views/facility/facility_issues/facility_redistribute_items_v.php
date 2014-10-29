@@ -1,3 +1,4 @@
+
 <style>
 	.big{ width: 150px !important; }
 	.row div p{
@@ -142,13 +143,15 @@ var facility_stock_data=<?php echo $facility_stock_data;     ?>;
 			  url: baseUrl,
 			  data: "district="+id,
 			  success: function(msg){ 
+			  	// alert(msg);return;s
 			  		var values=msg.split("_");
 			  		var txtbox;
 			  		for (var i=0; i < values.length-1; i++) {
 			  			var id_value=values[i].split("*");				  					  			
 			  			dropdown+="<option value="+id_value[0]+">";
 						dropdown+=id_value[1];						
-						dropdown+="</option>";		  			
+						dropdown+="</option>";	
+
 		  		}	
 			  },
 			  error: function(XMLHttpRequest, textStatus, errorThrown) {
@@ -156,11 +159,11 @@ var facility_stock_data=<?php echo $facility_stock_data;     ?>;
 			   }
 			}).done(function( msg ) {			
 				locator.closest("tr").find(".facility").html(dropdown);
-			});				
+			});
+
 		});	
             ///when changing the commodity combobox
       		$(".desc").on('change',function(){
-      			
       		var row_id=$(this).closest("tr").index();	
       		var locator=$('option:selected', this);
 			var data =$('option:selected', this).attr('special_data'); 
@@ -235,7 +238,7 @@ var facility_stock_data=<?php echo $facility_stock_data;     ?>;
     selector_object.closest("tr").find(".balance").val(selector_object.closest("tr").find(".commodity_balance").val());
     return;   }// set the balance here
    	selector_object.closest("tr").find(".balance").val(remainder1);	
-        });// adding a new row 
+        });// adding a new row seth
         $(".add").click(function() {
         var selector_object = $('#facility_issues_table tr:last');
         var form_data = check_if_the_form_has_been_filled_correctly(selector_object);
@@ -297,6 +300,7 @@ var facility_stock_data=<?php echo $facility_stock_data;     ?>;
         })/// remove the row
 		$('.remove').on('click',function(){
 			var data_ =$('option:selected', $(this).closest("tr").find('.desc')).attr('special_data'); 
+			// alert(data_);return;
 	       	var data_array=data_.split("^");
 			var row_id=$(this).closest("tr").index();
 			var count_rows=0;

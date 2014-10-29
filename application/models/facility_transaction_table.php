@@ -109,6 +109,40 @@ order by `a`.`sub_category_name` desc");
         return $inserttransaction ;
 		
 	 }
+	 public static function get_meds_commodities_for_ordering($facility_code,$for_a_facility=null){
+    	//echo "Its ait till here";exit;
+    	if(isset($for_a_facility)): // hack to ensure that when you are ordering for a facility that is not using hcmp they have all the items
+    $items=Commodities::get_all_from_supllier(1);
+	$temp=array();
+	foreach ($items as $data){
+	array_push($temp,array('sub_category_name'=>$data['sub_category_name'],'commodity_name'=>$data['commodity_name']
+	,'unit_size'=>$data['unit_size'],'unit_cost'=>$data['unit_size'],'commodity_code'=>$data['commodity_code'],'order_note'=>$data['order_note'],
+	'unit_cost'=>$data['order_cost'],'quantity_ordered'=>$data['quantity_ordered'],
+	'total_cost'=>$data['total_cost'],
+	'total_cost'=>0));
+	}
+	return $temp;
+endif;
+	 	$inserttransaction = Doctrine_Manager::getInstance()->getCurrentConnection()
+->fetchAll("select 
+`a`.`sub_category_name` AS `sub_category_name`,
+`b`.`commodity_name` AS `commodity_name`,
+`b`.`unit_pack` AS `unit_size`,
+`b`.`commodity_code` AS `commodity_code`,
+`b`.`order_note` AS `order_note`,
+`b`.`unit_price` AS `unit_cost`,
+`c`.`quantity` AS `quantity_ordered`,
+ifnull(ceiling(sum((`b`.`unit_pack` * `c`.`quantity`))),0) AS `total_cost` 
+from  `meds_commodities` `b`,`meds_sub_category` `a` ,`meds_order_note_details` `n`,`facility_orders_meds` `c`
+left join `facility_monthly_stock` `h` on (h.`facility_code`=$facility_code
+and  `h`.`commodity_id` = `c`.`commodity_id`)
+where (`b`.`id` = `c`.`commodity_id`
+and `b`.`status` = '1')
+group by `c`.`commodity_id` 
+order by `a`.`sub_category_name` desc");
+        return $inserttransaction ;
+		
+	 }
 	
 	
 }

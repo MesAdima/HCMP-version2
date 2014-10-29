@@ -105,6 +105,16 @@ class facility_orders extends Doctrine_Record {
 
 		return $query_results;
  }
+ 
+  public static function get_facility_order_details($order_id){
+ 	    $query_results=Doctrine_Manager::getInstance()->getCurrentConnection()->fetchAll("select f.facility_name, 
+ 	    f.facility_code, c.county, f_o.order_date from counties c, districts d, facilities f, 
+ 	    facility_orders f_o where f_o.facility_code=f.facility_code and f.district=d.id 
+ 	    and d.county=c.id and f_o.id=$order_id");
+
+		return $query_results;
+ }
+  
  public static function get_cost_of_orders($facility_code=null,$district_id=null,$county_id=null,$year=null,$month=null){
  	    $year_=date("Y");
 		$month_=date("n");
