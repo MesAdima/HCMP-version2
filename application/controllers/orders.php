@@ -100,30 +100,22 @@ for ($row = 1; $row <= $highestRow; $row++){
 	}
 	//Facility Transaction Data when MEDS option is selected
 	public function facility_order_meds() {
+		//$this -> load -> library('PHPExcel');
+		//ini_set("max_execution_time", "1000000");
 		$facility_code = $this -> session -> userdata('facility_id');
+
+        //$items=Facility_Transaction_Table::get_meds_commodities_for_ordering($facility_code);
 		
-		$facility_data = Facilities::get_facility_name_($facility_code) -> toArray();
-		
-		$items = Facility_Transaction_Table::get_commodities_for_ordering($facility_code);
-		
-		//echo "<pre>";print_r($items);echo "</pre>";exit;
-		$meds_categories = meds_categories::get_all();
-		//$meds_commodities = meds_commodities::get_all();
-		//echo "<pre>";print_r($meds_categories);exit;
-		
-		if(isset($_FILES['file']) && $_FILES['file']['size'] > 0)
-        {
-        	$ext = pathinfo($_FILES["file"]['name'], PATHINFO_EXTENSION);
+        if(isset($_FILES['file']) && $_FILES['file']['size'] > 0){
+        $ext = pathinfo($_FILES["file"]['name'], PATHINFO_EXTENSION);
             //echo $ext; 
-	        if($ext=='xls')
-	        {
-	        	$excel2 = PHPExcel_IOFactory::createReader('Excel5');  
-				 
-	        }else if($ext=='xlsx'){
-	        	$excel2 = PHPExcel_IOFactory::createReader('Excel2007');    
-	        }else{
-	        	die('Invalid file format given'.$_FILES['file']);   
-	        }
+        if($ext=='xls'){
+        $excel2 = PHPExcel_IOFactory::createReader('Excel5');    
+        }else if($ext=='xlsx'){
+        $excel2 = PHPExcel_IOFactory::createReader('Excel2007');    
+        }else{
+        die('Invalid file format given'.$_FILES['file']);   
+        }
 		
 		$excel2=$objPHPExcel= $excel2->load($_FILES["file"]["tmp_name"]); // Empty Sheet
     
@@ -133,157 +125,127 @@ for ($row = 1; $row <= $highestRow; $row++){
         $highestColumn = $sheet->getHighestColumn();
         $temp=array();
         $facility_code= $sheet->getCell('H4')->getValue();
-   		
+   
+   
         //  Loop through each row of the worksheet in turn
-        $array_code=array();
+        $array_commodity_code=array();
+		$array_order_note=array();
 		$array_commodity=array();
-		$array_category=array();
+		$array_notes=array();
+		$array_strength=array();
 		$array_pack=array();
 		$array_price=array();
 		$array_order_qty=array();
 		$array_order_val=array();
-		$array_index=array();
+		$array_totals=array();
 		//$array_code=array();
+		
         for ($row = 17; $row <= $highestRow; $row++){ 
         //  Read a row of data into an array
         $rowData = $objPHPExcel->getActiveSheet()->rangeToArray('A' . $row . ':' . $highestColumn . $row,NULL,TRUE,FALSE);
      	//var_dump($rowData); 
 		//count($rowData);
-		$array_index[]=$rowData[0][1];
-		$array_code[]=$rowData[0][2];
+		
+		$code=preg_replace('/\s+/ ','',$rowData[0][2]);
+		$code=str_replace('-','',$code);
+		$array_commodity_code[]=$rowData[0][1];
+		$array_order_note[]=$code;
 		$array_commodity[]=$rowData[0][3];
-		$array_category[]=$rowData[0][4];
-		$array_price[]=$rowData[0][6];
-		$array_order_qty[]=(int)$rowData[0][7];
-		$array_order_val[]=$rowData[0][8];
-		$array_pack[]=$rowData[0][5];
-			
+		$array_notes[]=$rowData[0][4];
+		$array_strength[]=$rowData[0][6];
+		$array_pack[]=(int)$rowData[0][7];
+		$array_price[]=$rowData[0][8];
+		$array_order_qty[]=$rowData[0][9];
+		$array_order_val[]=$rowData[0][10];	
+		$array_totals[]=$rowData[0][11];
 		//if(isset($rowData[0][2]) && $rowData[0][2]!='Product Code'){
-			//echo '<pre>';print_r($rowData[0][7]); echo '</pre>';
+			echo '<pre>';print_r($rowData); echo '</pre>';exit;
         //foreach($items as $key=> $data){
-        	//echo '<pre>';print_r($array_index); echo '</pre>';
+        	//echo '<pre>';print_r($rowData); echo '</pre>';
             //}   
             //}
             }
-		
-		foreach ($array_index as $id => $key) {
+		//echo '<pre>';print_r($array_order_qty); echo '</pre>';exit;
+		foreach ($array_order_qty as $id => $key) {
+				//echo '<pre>';print_r($array_commodity[$id].'.'.$array_code[$id]); echo '</pre>';//exit;  
+        	
         		//foreach($items as $key=> $data){
-        array_push($temp,array('sub_category_name'=>$array_category[$key],
-        'commodity_name'=>$array_commodity[$key],
-        'unit_size'=>$array_pack[$key],
-        'unit_cost'=>$array_price[$key],
-        'commodity_code'=>$array_code[$key],
-        'commodity_id'=>$data['commodity_id'],
-        'quantity_ordered'=>($array_order_qty[$key]=='')? 0:(int)$array_order_qty[$key],
-        'total_commodity_units'=>$array_price[$key]*(int)$array_order_qty[$key],
-        'opening_balance'=>0,
-        'total_receipts'=>0,
-        'total_issues'=>0,
-        'comment'=>'',
-        'closing_stock_'=>0,
-        'closing_stock'=>0,
-        'days_out_of_stock'=>0,
-        'date_added'=>'',
-        'losses'=>0,
-        'status'=>0,
-        'adjustmentpve'=>0,
-        'adjustmentnve'=>0,
-        'historical'=>0));
+        array_push($temp,array('commodity_code'=>$array_code[$id],
+        'order_note'=>$array_order_note[$id],
+        'commodity_name'=>$array_commodity[$id],
+        'notes'=>$array_notes[$id],
+        'strength'=>$array_strength[$id],
+        'unit_size'=>$array_pack[$id],
+        'unit_cost'=>($array_price[$id]=='')? 0:(int)$array_price[$id],
+        'quantity_ordered'=>($array_order_qty[$id]=='')? 0:(int)$array_order_qty[$id],
+        'order_value'=>($array_order_val[$id]=='')? 0:(int)$array_order_val[$id],
+        'totals'=>($array_totals[$id]=='')? 0:(int)$array_totals[$id],
+        ));
          //unset($items[$key]);
-        // }
-              
-}
-		
-foreach ($temp as $key => $value) {
+        /// }
+}//exit;
+    foreach ($temp as $key => $value) {
 	//echo '<pre>';print_r($value['commodity_code']); echo '</pre>';
-	if ($value['commodity_code']==""||$value['quantity_ordered']=="") {
+	if ($value['commodity_code']==""||$value['quantity_ordered']==0) {
 		unset($temp[$key]);
 	}
-}
+	
+}//echo '<pre>';print_r($temp); echo '</pre>';exit;
 		//$c = array_combine($array_code, $array_commodity);
 		$array_id=array();
-		foreach ($temp as $key ) {
+		$array_codes=array();
+		$main_array=array();
+		foreach ($temp as $keys ) {
 			
-			$kemsa=$key['commodity_code'];
-			
-			$get_id=Commodities::get_id($kemsa);
-			
+			$kemsa=$keys['commodity_code'];
+			$unit_cost=$keys['unit_cost'];
+			//$unit_size=preg_replace("(')", "",$size);
+			$get_id=Commodities::get_id($kemsa,$unit_cost);
+			//echo '<pre>';print_r($get_id); echo '</pre>';
+			$main_array[]=$keys;
 			foreach ($get_id as $key2) {
 				$array_id[]=$key2['id'];
-				//echo '<pre>';print_r($key2['id']); echo '</pre>';
+				$array_total_units[]=$key2['total_commodity_units'];
+				
+				//echo '<pre>';print_r($keys); echo '</pre>';
 			}
 			
 			//echo '<pre>';print_r($get_id[]); echo '</pre>';
 		}
-		//$result = array_combine($array_id, $temp);
-		//echo '<pre>';print_r($array_id); echo '</pre>';
-		//echo '<pre>';print_r($temp); echo '</pre>';exit;
-		//echo $key['sub_category_name'];
-
-		$array_combined=array();
-		$id_count=count($temp);
-		
-		foreach ($temp as $key => $value) {
+		//echo '<pre>';print_r($main_array); echo '</pre>';exit;
+		//$new=array_combine($array_id, $array_codes);
+		//echo '<pre>';print_r($new); echo '</pre>';exit;
 			
-				//echo $keys['sub_category_name'];
-				array_push($array_combined,array(
-			'sub_category_name'=>$value['sub_category_name'],
-        'commodity_name'=>$value['commodity_name'],
-        'unit_size'=>$value['unit_size'],
-        'unit_cost'=>$value['unit_cost'],
-        'commodity_code'=>$value['commodity_code'],
-        'commodity_id'=>$key,
-        'quantity_ordered'=>$value['quantity_ordered'],
-        'total_commodity_units'=>$value['total_commodity_units'],
-        'opening_balance'=>0,
-        'total_receipts'=>0,
-        'total_issues'=>0,
-        'comment'=>'',
-        'closing_stock_'=>0,
-        'closing_stock'=>0,
-        'days_out_of_stock'=>0,
-        'date_added'=>'',
-        'losses'=>0,
-        'status'=>0,
-        'adjustmentpve'=>0,
-        'adjustmentnve'=>0,
-        'historical'=>0));
-		}
-		//echo '<pre>';print_r($array_combined); echo '</pre>';
-		//echo '<pre>';print_r($array_id); echo '</pre>';
+			
+		
+		$array_combined=array();
+		$id_count=count($array_id);
+		
+		for ($i=0; $i < $id_count;$i++) {
+			$main_array[$i]['commodity_id']=$array_id[$i];
+			$main_array[$i]['total_commodity_units']=$array_total_units[$i];
+			//echo '<pre>';print_r($main_array[$i]); echo '</pre>';
+			
+			
+				}//exit;
+		
+		//echo '<pre>';print_r($main_array); echo '</pre>';
 		//exit;
 		
-              
-	//var_dump();
-	//exit;
         //unset($objPHPExcel);
-       $data['order_details'] = $data['facility_order'] = $array_combined;  
+       $data['order_details'] = $data['facility_order'] = $main_array;  
         }else{
         $data['order_details'] = $data['facility_order'] = $items;   
         }
 		
-		$data['categories'] = $meds_categories;
-        $data['order_details'] = $data['facility_order'] = $items;   
-		$facility_code = $this -> session -> userdata('facility_id');
+		//var_dump($temp);exit;
+        $facility_code = $this -> session -> userdata('facility_id');
 		// echo $facility_code;exit;
         $data['facility_commodity_list'] = Commodities::get_commodities_not_in_facility($facility_code);
 		$data['title'] = "Facility New Order MEDS";
 		$data['content_view'] = "facility/facility_orders/facility_order_meds";
 		$data['banner_text'] = "Facility New Order MEDS";
 		$this -> load -> view("shared_files/template/template", $data);
-		
-		//var_dump($temp);exit;
-        /*$facility_code = $this -> session -> userdata('facility_id');
-		$facility_data = Facilities::get_facility_name_($facility_code) -> toArray();
-        $data['content_view'] = "facility/facility_orders/facility_order_from_kemsa_v";
-        $data['title'] = "Facility New Order";
-        $data['banner_text'] = "Facility New Order";
-        $data['drawing_rights'] = $facility_data[0]['drawing_rights'];
-        
-		$this -> load -> view('shared_files/template/template', $data);*/
-		//$data['facility_stock_data'] = facility_transaction_table::get_all($facility_code);
-        //$data['last_issued_data']=facility_issues::get_last_time_facility_issued($facility_code);
-		
 	}
 	//AJAX Request for getting the sub categories of a particular category
 	public function get_sub_categories() {
